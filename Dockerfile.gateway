@@ -1,0 +1,22 @@
+# Dockerfile.gateway
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Set Python to run in unbuffered mode for immediate logging
+ENV PYTHONUNBUFFERED=1
+
+# Copy source code
+COPY src/gateway/ ./src/gateway/
+COPY src/shared/ ./src/shared/
+
+# Expose port
+EXPOSE 5000
+
+# Run gateway
+CMD ["python", "src/gateway/server.py"]
+

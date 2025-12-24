@@ -1,0 +1,165 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: task-queue-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: task-queue-gateway
+    ports:
+      - "8000:5000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=5000
+      - MAX_RETRIES=3
+      - INITIAL_RETRY_DELAY=5
+      - RETRY_BACKOFF_MULTIPLIER=2.0
+      - MAX_RETRY_DELAY=3600
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker1:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: task-queue-worker-1
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MAX_RETRIES=3
+      - INITIAL_RETRY_DELAY=5
+      - RETRY_BACKOFF_MULTIPLIER=2.0
+      - MAX_RETRY_DELAY=3600
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker2:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: task-queue-worker-2
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MAX_RETRIES=3
+      - INITIAL_RETRY_DELAY=5
+      - RETRY_BACKOFF_MULTIPLIER=2.0
+      - MAX_RETRY_DELAY=3600
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker3:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: task-queue-worker-3
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MAX_RETRIES=3
+      - INITIAL_RETRY_DELAY=5
+      - RETRY_BACKOFF_MULTIPLIER=2.0
+      - MAX_RETRY_DELAY=3600
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker4:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: task-queue-worker-4
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MAX_RETRIES=3
+      - INITIAL_RETRY_DELAY=5
+      - RETRY_BACKOFF_MULTIPLIER=2.0
+      - MAX_RETRY_DELAY=3600
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker5:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: task-queue-worker-5
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MAX_RETRIES=3
+      - INITIAL_RETRY_DELAY=5
+      - RETRY_BACKOFF_MULTIPLIER=2.0
+      - MAX_RETRY_DELAY=3600
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: task-queue-dashboard
+    ports:
+      - "5001:5001"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+      - gateway
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: task-queue-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    depends_on:
+      - gateway
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: task-queue-jaeger
+    ports:
+      - "6831:6831/udp"
+      - "16686:16686"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  prometheus-data:

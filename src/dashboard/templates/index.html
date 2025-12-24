@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Queue Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-card.success { border-left-color: #10b981; }
+        .stat-card.warning { border-left-color: #f59e0b; }
+        .stat-card.danger { border-left-color: #ef4444; }
+        .stat-card.info { border-left-color: #3b82f6; }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-detail {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+        }
+
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .workers-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .worker-item {
+            background: #f9fafb;
+            padding: 12px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .worker-id {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .worker-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .tasks-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .tasks-table thead {
+            background: #f3f4f6;
+        }
+
+        .tasks-table th,
+        .tasks-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .tasks-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #7f1d1d;
+        }
+
+        .status-retrying {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .status-processing {
+            background: #dbeafe;
+            color: #082f49;
+        }
+
+        .loading {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #7f1d1d;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+
+        .task-id {
+            font-family: monospace;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tasks-table {
+                font-size: 11px;
+            }
+            
+            .tasks-table th,
+            .tasks-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📊 Distributed Task Queue Dashboard</h1>
+        <p>Real-time monitoring and management of your task queue system</p>
+    </header>
+
+    <div class="container">
+        <!-- Stats Section -->
+        <div class="stats-grid" id="statsContainer">
+            <div class="loading">Loading statistics...</div>
+        </div>
+
+        <!-- Workers Section -->
+        <div class="section">
+            <h2>👷 Active Workers</h2>
+            <button class="refresh-btn" onclick="loadStats()">🔄 Refresh</button>
+            <div id="workersContainer" class="workers-list">
+                <div class="loading">Loading workers...</div>
+            </div>
+        </div>
+
+        <!-- Recent Tasks Section -->
+        <div class="section">
+            <h2>📋 Recent Tasks</h2>
+            <button class="refresh-btn" onclick="loadRecentTasks()">🔄 Refresh</button>
+            <div id="tasksContainer">
+                <div class="loading">Loading tasks...</div>
+            </div>
+        </div>
+
+        <!-- Dead Letter Queue Section -->
+        <div class="section">
+            <h2>💀 Dead Letter Queue</h2>
+            <button class="refresh-btn" onclick="loadDLQ()">🔄 Refresh</button>
+            <div id="dlqContainer">
+                <div class="loading">Loading DLQ...</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Last updated: <span id="lastUpdate">-</span> | Auto-refresh every 5 seconds</p>
+    </footer>
+
+    <script>
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+
+                const html = `
+                    <div class="stat-card success">
+                        <div class="stat-label">Completed Tasks</div>
+                        <div class="stat-value">${data.tasks.completed}</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-label">Pending Tasks</div>
+                        <div class="stat-value">${data.tasks.pending}</div>
+                        <div class="stat-detail">Normal: ${data.queues.pending_normal} | High: ${data.queues.pending_high}</div>
+                    </div>
+                    <div class="stat-card info">
+                        <div class="stat-label">Retrying Tasks</div>
+                        <div class="stat-value">${data.tasks.retrying}</div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-label">Failed Tasks (DLQ)</div>
+                        <div class="stat-value">${data.tasks.failed}</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-label">Active Workers</div>
+                        <div class="stat-value">${data.workers.active}</div>
+                    </div>
+                `;
+
+                document.getElementById('statsContainer').innerHTML = html;
+
+                // Load workers details
+                let workersHtml = '';
+                if (data.workers.details.length === 0) {
+                    workersHtml = '<div class="empty-state">No active workers</div>';
+                } else {
+                    data.workers.details.forEach(worker => {
+                        workersHtml += `
+                            <div class="worker-item">
+                                <div>
+                                    <div class="worker-id">${worker.id}</div>
+                                    <div class="stat-detail">Tasks: ${worker.tasks_processed || 0}</div>
+                                </div>
+                                <div class="worker-status">Active</div>
+                            </div>
+                        `;
+                    });
+                }
+                document.getElementById('workersContainer').innerHTML = workersHtml;
+
+                updateTimestamp();
+            } catch (error) {
+                document.getElementById('statsContainer').innerHTML = `<div class="error">Error loading stats: ${error.message}</div>`;
+            }
+        }
+
+        // Load recent tasks
+        async function loadRecentTasks() {
+            try {
+                const response = await fetch('/api/tasks/recent');
+                const data = await response.json();
+
+                let html = '';
+                if (data.tasks.length === 0) {
+                    html = '<div class="empty-state">No tasks found</div>';
+                } else {
+                    html = `
+                        <table class="tasks-table">
+                            <thead>
+                                <tr>
+                                    <th>Task ID</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Retries</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    data.tasks.forEach(task => {
+                        const createdDate = new Date(task.created_at).toLocaleString();
+                        html += `
+                            <tr>
+                                <td><span class="task-id">${task.id.substring(0, 8)}...</span></td>
+                                <td>${task.type}</td>
+                                <td><span class="status-badge status-${task.status}">${task.status}</span></td>
+                                <td>${task.priority || 'normal'}</td>
+                                <td>${task.retry_count || 0}</td>
+                                <td>${createdDate}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                            </tbody>
+                        </table>
+                        <div class="stat-detail" style="margin-top: 10px;">Total tasks in system: ${data.total}</div>
+                    `;
+                }
+                document.getElementById('tasksContainer').innerHTML = html;
+                updateTimestamp();
+            } catch (error) {
+                document.getElementById('tasksContainer').innerHTML = `<div class="error">Error loading tasks: ${error.message}</div>`;
+            }
+        }
+
+        // Load DLQ tasks
+        async function loadDLQ() {
+            try {
+                const response = await fetch('/api/dlq');
+                const data = await response.json();
+
+                let html = '';
+                if (data.tasks.length === 0) {
+                    html = '<div class="empty-state">Dead Letter Queue is empty ✓</div>';
+                } else {
+                    html = `
+                        <table class="tasks-table">
+                            <thead>
+                                <tr>
+                                    <th>Task ID</th>
+                                    <th>Type</th>
+                                    <th>Retries</th>
+                                    <th>Error</th>
+                                    <th>Failed At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    data.tasks.forEach(task => {
+                        const failedDate = task.failed_at ? new Date(task.failed_at).toLocaleString() : '-';
+                        html += `
+                            <tr>
+                                <td><span class="task-id">${task.id.substring(0, 8)}...</span></td>
+                                <td>${task.type}</td>
+                                <td>${task.retry_count || 0}</td>
+                                <td><span class="stat-detail">${(task.error || 'Unknown').substring(0, 50)}</span></td>
+                                <td>${failedDate}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                            </tbody>
+                        </table>
+                        <div class="stat-detail" style="margin-top: 10px;">Total in DLQ: ${data.total}</div>
+                    `;
+                }
+                document.getElementById('dlqContainer').innerHTML = html;
+                updateTimestamp();
+            } catch (error) {
+                document.getElementById('dlqContainer').innerHTML = `<div class="error">Error loading DLQ: ${error.message}</div>`;
+            }
+        }
+
+        function updateTimestamp() {
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        // Initial load
+        loadStats();
+        loadRecentTasks();
+        loadDLQ();
+
+        // Auto-refresh every 5 seconds
+        setInterval(() => {
+            loadStats();
+            loadRecentTasks();
+            loadDLQ();
+        }, 5000);
+    </script>
+</body>
+</html>
