@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "distributed-task-queue"
+dynamic = ["version"]
+description = "Production-ready distributed task queue with retry, DLQ, metrics, and tracing"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Surukanti", email = "surukanti@example.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: System :: Distributed Computing",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "Flask>=2.3.0",
+    "redis>=4.5.0",
+    "prometheus-client>=0.17.0",
+    "opentelemetry-api>=1.18.0",
+    "opentelemetry-sdk>=1.18.0",
+    "opentelemetry-exporter-jaeger>=1.18.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "flake8>=6.0",
+    "isort>=5.0",
+    "mypy>=1.0",
+    "pylint>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/surukanti/distributed-task-queue-python"
+Documentation = "https://distributed-task-queue.github.io"
+Repository = "https://github.com/surukanti/distributed-task-queue-python.git"
+Issues = "https://github.com/surukanti/distributed-task-queue-python/issues"
+
+[tool.setuptools]
+packages = ["gateway", "worker", "dashboard", "shared"]
+
+[tool.black]
+line-length = 127
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+line_length = 127
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --cov=src --cov-report=html"
